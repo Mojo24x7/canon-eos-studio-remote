@@ -1,0 +1,907 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Selfie Booth</title>
+<style>
+:root{
+  --bg1:#fecaca;
+  --bg2:#bfdbfe;
+  --bg3:#fef9c3;
+  --card:#ffffff;
+  --card-soft:rgba(255,255,255,0.85);
+  --border:#e5e7eb;
+  --accent:#f97316;
+  --accent2:#6366f1;
+  --accent3:#22c55e;
+  --fg:#0f172a;
+  --muted:#64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  color:var(--fg);
+  background:
+    radial-gradient(circle at 0% 0%, var(--bg1) 0, transparent 55%),
+    radial-gradient(circle at 100% 0%, var(--bg2) 0, transparent 55%),
+    radial-gradient(circle at 50% 100%, var(--bg3) 0, #f9fafb 55%);
+  padding:10px;
+}
+.wrap{
+  max-width:1400px;
+  margin:0 auto;
+}
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.brand{
+  font-size:24px;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.brand-badge{
+  font-size:12px;
+  color:var(--muted);
+}
+.brand-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.8);
+  border:1px solid rgba(148,163,184,0.5);
+  font-size:11px;
+  color:var(--muted);
+}
+
+.status-pill{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.9);
+  border:1px solid rgba(148,163,184,0.5);
+  font-size:11px;
+  box-shadow:0 8px 20px rgba(15,23,42,0.12);
+}
+.conn-dot{
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background:#9ca3af;
+}
+.conn-dot.on{
+  background:var(--accent3);
+  box-shadow:0 0 0 4px rgba(34,197,94,0.35);
+}
+.status-pill span{white-space:nowrap}
+
+/* layout */
+.main-layout{
+  display:grid;
+  grid-template-columns: minmax(0,1.3fr) minmax(0,1fr);
+  gap:12px;
+}
+@media(max-width:900px){
+  .main-layout{
+    grid-template-columns:1fr;
+  }
+}
+
+/* cards */
+.card{
+  border-radius:20px;
+  background:var(--card-soft);
+  border:1px solid var(--border);
+  box-shadow:0 14px 32px rgba(15,23,42,0.12);
+  padding:12px;
+}
+.card-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:6px;
+}
+.card-title{
+  font-size:15px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.card-sub{
+  font-size:12px;
+  color:var(--muted);
+}
+
+/* capture block */
+.capture-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  height:100%;
+}
+.capture-top{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.capture-bottom{
+  margin-top:4px;
+}
+
+.capture-btn{
+  width:100%;
+  padding:16px 0;
+  border-radius:999px;
+  border:none;
+  cursor:pointer;
+  font-size:24px;
+  font-weight:800;
+  letter-spacing:0.04em;
+  color:white;
+  background:radial-gradient(circle at 0 0,#f97316,#facc15 55%);
+  box-shadow:0 16px 32px rgba(248,113,113,0.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  transition:transform 0.09s, box-shadow 0.09s, filter 0.09s;
+}
+.capture-btn span.emoji{
+  font-size:28px;
+}
+.capture-btn:hover{
+  filter:brightness(1.05);
+}
+.capture-btn:active{
+  transform:translateY(1px);
+  box-shadow:0 10px 24px rgba(15,23,42,0.45);
+}
+.capture-btn.ok{
+  background:linear-gradient(135deg,#22c55e,#4ade80);
+  box-shadow:0 16px 32px rgba(34,197,94,0.55);
+}
+.capture-btn.err{
+  background:linear-gradient(135deg,#ef4444,#f97316);
+  box-shadow:0 16px 32px rgba(248,113,113,0.7);
+}
+
+.capture-status{
+  font-size:13px;
+  color:var(--muted);
+  min-height:18px;
+}
+
+/* preview area */
+.preview-main{
+  width:100%;
+  max-height:48vh;        /* was 60vh */
+  border-radius:18px;
+  object-fit:cover;
+  background:#e5e7eb;
+  cursor:pointer;
+  border:2px solid rgba(248,250,252,0.9);
+  box-shadow:0 14px 30px rgba(15,23,42,0.3);
+}
+.preview-caption{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+}
+.preview-caption span strong{
+  color:var(--fg);
+}
+
+.preview-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin-top:8px;
+}
+.preview-tile{
+  position:relative;
+  border-radius:16px;
+  overflow:hidden;
+  background:#e5e7eb;
+  cursor:pointer;
+  box-shadow:0 10px 22px rgba(15,23,42,0.25);
+}
+.preview-img{
+  width:100%;
+  height:18vh;           /* was 26vh */
+  object-fit:cover;
+}
+.preview-label{
+  position:absolute;
+  left:8px;
+  bottom:8px;
+  background:rgba(15,23,42,0.76);
+  color:white;
+  border-radius:999px;
+  padding:3px 9px;
+  font-size:11px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+/* settings panel */
+.settings-card{
+  background:rgba(255,255,255,0.92);
+}
+.settings-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:6px;
+}
+.settings-group{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  min-width:90px;
+}
+.settings-label{
+  font-size:11px;
+  color:var(--muted);
+}
+select{
+  background:#f9fafb;
+  color:var(--fg);
+  border-radius:999px;
+  border:1px solid #e5e7eb;
+  padding:6px 10px;
+  font-size:12px;
+  min-width:100px;
+  outline:none;
+}
+select:focus{
+  border-color:var(--accent2);
+  box-shadow:0 0 0 1px rgba(99,102,241,0.5);
+}
+.settings-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-top:8px;
+}
+.btn-sm{
+  border-radius:999px;
+  border:none;
+  padding:6px 10px;
+  font-size:12px;
+  cursor:pointer;
+  background:#eef2ff;
+  color:#4338ca;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+}
+.btn-sm span{
+  font-size:14px;
+}
+.btn-sm:hover{
+  filter:brightness(1.03);
+}
+.settings-status{
+  font-size:12px;
+  color:var(--muted);
+}
+
+/* test shot */
+.test-shot-card{
+  margin-top:8px;
+}
+.test-thumb{
+  width:100%;
+  max-height:18vh;       /* was 24vh */
+  border-radius:14px;
+  object-fit:cover;
+  background:#e5e7eb;
+  margin-top:6px;
+  display:none;
+  cursor:pointer;
+}
+
+/* toast */
+.toast-wrap{
+  position:fixed;
+  right:14px;
+  bottom:14px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  z-index:50;
+}
+.toast{
+  padding:8px 11px;
+  border-radius:14px;
+  font-size:13px;
+  background:#ffffff;
+  border:1px solid #e5e7eb;
+  box-shadow:0 10px 22px rgba(15,23,42,0.35);
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+}
+.toast.ok{
+  border-left:4px solid var(--accent3);
+}
+.toast.err{
+  border-left:4px solid #ef4444;
+}
+.toast-emoji{
+  font-size:18px;
+}
+.toast-text{
+  flex:1;
+}
+
+/* kiosk hint */
+.kiosk-hint{
+  font-size:11px;
+  color:var(--muted);
+  text-align:right;
+  margin-top:4px;
+}
+</style>
+
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">
+        <span>📸 Selfie Booth</span>
+        <span class="brand-pill">Tap · Smile · Repeat</span>
+      </div>
+      <div class="brand-badge">Self-service photo booth – ideal for events & fun portraits</div>
+    </div>
+    <div class="status-pill">
+      <span id="connDot" class="conn-dot"></span>
+      <span id="camInfo">Camera: —</span>
+      <span id="batInfo">Battery: —</span>
+      <span id="modeInfo">Mode: —</span>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- LEFT: preview + last two -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Latest Shot 🎉</div>
+          <div class="card-sub">Strike a pose, tap the button, and watch the screen!</div>
+        </div>
+        <div class="kiosk-hint">Tip: Press <strong>F11</strong> on the browser for full-screen kiosk mode.</div>
+      </div>
+
+      <img id="mainPreview" class="preview-main" src="/latest.jpg" alt="No image yet">
+<!-- Dedicated MJPEG live view stream (hidden until started) 
+<img id="liveStreamImg" class="preview-main" style="display:none" alt="Live view stream"> -->
+      <div class="preview-caption">
+        <span id="lastFileLabel">Waiting for the first photo…</span>
+        <span>Tap image for full-screen</span>
+      </div>
+      <!-- LIVE VIEW TOGGLE ROW -->
+      <div class="preview-caption preview-caption-right">
+        <button class="btn-sm" id="btnLiveToggle">
+          <span>🎥</span><span id="btnLiveLabel">Start live view</span>
+        </button>
+      </div>
+
+      <div class="preview-grid">
+        <div class="preview-tile" id="tile1" style="display:none">
+          <img id="shot1" class="preview-img" alt="">
+          <div class="preview-label">
+            <span>Newest</span>
+          </div>
+        </div>
+        <div class="preview-tile" id="tile2" style="display:none">
+          <img id="shot2" class="preview-img" alt="">
+          <div class="preview-label">
+            <span>Previous</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: capture + settings -->
+    <div class="capture-wrap">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Ready? Tap to Snap! ✨</div>
+        </div>
+        <div class="capture-top">
+          <button id="btnCapture" class="capture-btn">
+            <span class="emoji">🟠</span>
+            <span>Tap to Snap!</span>
+          </button>
+          <div id="captureStatus" class="capture-status">All set – get your best smile ready!</div>
+        </div>
+      </div>
+
+      <div class="card settings-card">
+        <div class="card-header">
+          <div class="card-title">Photographer Panel 🎛️</div>
+        </div>
+        <div class="card-sub">Adjust key settings if needed. Guests can ignore this.</div>
+
+        <div class="settings-row">
+          <div class="settings-group">
+            <div class="settings-label">ISO</div>
+            <select id="iso"></select>
+          </div>
+          <div class="settings-group">
+            <div class="settings-label">Shutter</div>
+            <select id="ss"></select>
+          </div>
+          <div class="settings-group">
+            <div class="settings-label">Aperture</div>
+            <select id="ap"></select>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-group">
+            <div class="settings-label">Drive mode</div>
+            <select id="dm"></select>
+          </div>
+          <div class="settings-group">
+            <div class="settings-label">Focus mode</div>
+            <select id="fm"></select>
+          </div>
+          <div class="settings-group">
+            <div class="settings-label">AF mode</div>
+            <select id="afm"></select>
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <button class="btn-sm" id="btnQuickRefresh">
+            <span>🔄</span><span>Refresh from camera</span>
+          </button>
+          <div id="cfgStatus" class="settings-status">Quick settings synced.</div>
+        </div>
+        <!-- Camera-body preview sync -->
+        <div class="settings-row" style="margin-top:8px">
+          <label class="settings-label" style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="previewSyncToggle">
+            Mirror photos shot on camera body onto this screen
+          </label>
+        </div>
+        <div class="test-shot-card">
+          <div class="card-sub">Need to check framing? Use a test shot (not saved).</div>
+          <button class="btn-sm" id="btnTestShot">
+            <span>🧪</span><span>Test shot (no save)</span>
+          </button>
+          <img id="testPreview" class="test-thumb" alt="Test shot preview">
+        </div>
+      </div>
+
+      <div class="capture-bottom">
+        <div class="kiosk-hint">Guests: Just tap the big button. Camera will do the rest 💫</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap" class="toast-wrap"></div>
+
+<script>
+
+let lastLatestFile = null;
+
+// ---- helpers ----
+function toast(message, kind="ok"){
+  const wrap = document.getElementById('toastWrap');
+  const box  = document.createElement('div');
+  box.className = 'toast ' + (kind === 'err' ? 'err' : 'ok');
+
+  const emo = document.createElement('div');
+  emo.className='toast-emoji';
+  emo.textContent = kind === 'err' ? '⚠️' : '✨';
+
+  const text = document.createElement('div');
+  text.className='toast-text';
+  text.textContent = message;
+
+  box.appendChild(emo);
+  box.appendChild(text);
+  wrap.appendChild(box);
+  setTimeout(()=>box.remove(), 3800);
+}
+
+function setText(id, txt){
+  const el = document.getElementById(id);
+  if(el) el.textContent = txt;
+}
+
+function enterFullscreen(el){
+  if(!el) return;
+  if(el.requestFullscreen) el.requestFullscreen();
+  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+}
+
+// ---- LIVE VIEW (MJPEG in mainPreview) ----
+// ---- LIVE VIEW (MJPEG in mainPreview, same style as index.html logic) ----
+let liveStreamActive = false;
+
+const mainPreview     = document.getElementById('mainPreview');
+const liveToggleBtn   = document.getElementById('btnLiveToggle');
+const liveToggleLabel = document.getElementById('btnLiveLabel');
+
+function updateLiveButtonUI(){
+  if(!liveToggleBtn || !liveToggleLabel) return;
+  if(liveStreamActive){
+    liveToggleBtn.classList.add('live-on');
+    liveToggleLabel.textContent = 'Stop live view';
+  }else{
+    liveToggleBtn.classList.remove('live-on');
+    liveToggleLabel.textContent = 'Start live view';
+  }
+}
+
+function startLiveStream(){
+  if(liveStreamActive) return;
+  if(!mainPreview) return;
+
+  // Use the same pattern as index.html: just point the <img> at the MJPEG URL
+  mainPreview.src = '/live_stream.mjpg?ts=' + Date.now();
+
+  liveStreamActive = true;
+  updateLiveButtonUI();
+}
+
+function stopLiveStreamClientSide(){
+  if(!mainPreview) return;
+
+  // Revert to the normal latest.jpg still
+  mainPreview.src = '/latest.jpg?ts=' + Date.now();
+
+  liveStreamActive = false;
+  updateLiveButtonUI();
+
+  // Same as index.html: tell server to kill the gphoto2 movie process
+  fetch('/api/live_stream/stop', { method:'POST' }).catch(()=>{});
+}
+
+// Toggle from the UI button (single button → start/stop)
+if(liveToggleBtn){
+  liveToggleBtn.addEventListener('click', () => {
+    if(liveStreamActive){
+      stopLiveStreamClientSide();
+    }else{
+      startLiveStream();
+    }
+  });
+}
+
+
+// ---- status polling ----
+async function refreshStatus(){
+  try{
+    const res = await fetch('/api/status');
+    if(!res.ok) return;
+    const st  = await res.json();
+    const cams = st.cameras || [];
+    const dot  = document.getElementById('connDot');
+
+    let camStr = 'No camera';
+    if(cams.length === 1){
+      camStr = `${cams[0].model} (${cams[0].port})`;
+    }else if(cams.length > 1){
+      camStr = `${cams[0].model} (+${cams.length-1})`;
+    }
+    setText('camInfo','Camera: ' + camStr);
+    setText('batInfo','Battery: ' + (st.battery || '—'));
+    setText('modeInfo','Mode: ' + (st.shooting_mode || '—'));
+
+    if(dot){
+      if(cams.length) dot.classList.add('on');
+      else dot.classList.remove('on');
+    }
+
+    if(st.latest_file){
+      setText('lastFileLabel','Last file: ' + st.latest_file);
+    }
+  }catch(e){
+    // ignore
+  }
+}
+// ---- capture ----
+const btnCapture   = document.getElementById('btnCapture');
+const captureState = document.getElementById('captureStatus');
+
+
+async function doCapture(){
+  // remember if live view was active at the moment of clicking
+  const wasLive = liveStreamActive;
+
+  btnCapture.disabled = true;
+  btnCapture.classList.remove('ok','err');
+  captureState.textContent = 'Capturing… hold that smile! 😁';
+
+  // If live view is running, stop it first so gphoto2 is not busy
+  if(wasLive){
+    stopLiveStreamClientSide();
+    // give the movie process enough time to exit cleanly
+    await new Promise(r => setTimeout(r, 800));
+  }
+
+  try{
+    const res = await fetch('/capture');
+    const data = await res.json();
+    if(res.ok && (data.status === 'Captured' || data.status === 'OK')){
+      btnCapture.classList.add('ok');
+      captureState.textContent = 'Nice shot! It should be on the screen now 🎊';
+      mainPreview.src = '/latest.jpg?ts=' + Date.now();
+      if(data.filename){
+        setText('lastFileLabel','Last file: ' + data.filename);
+      }
+      await loadLastTwo();
+      toast('Photo captured – check the big screen!', 'ok');
+    }else{
+      btnCapture.classList.add('err');
+      captureState.textContent = 'Oops, that one failed. Try again in a moment.';
+      toast('Capture failed – please try again', 'err');
+    }
+  }catch(e){
+    btnCapture.classList.add('err');
+    captureState.textContent = 'Error: ' + e;
+    toast('Capture error: ' + e, 'err');
+  }finally{
+    btnCapture.disabled = false;
+    setTimeout(()=>btnCapture.classList.remove('ok','err'), 1200);
+    refreshStatus();
+  }
+}
+btnCapture.addEventListener('click', doCapture);
+
+
+// ---- last two shots ----
+async function loadLastTwo(){
+  try{
+    const res = await fetch('/api/gallery?limit=2');
+    if(!res.ok) return;
+    const list = await res.json();
+    const t1 = document.getElementById('tile1');
+    const t2 = document.getElementById('tile2');
+    const s1 = document.getElementById('shot1');
+    const s2 = document.getElementById('shot2');
+
+    function apply(tile, img, item){
+      if(!tile || !img) return;
+      if(!item){
+        tile.style.display='none';
+        return;
+      }
+      tile.style.display='block';
+      img.src = (item.thumb || item.url) + '?v=' + item.ts;
+      img.alt = item.name;
+      img.dataset.name = item.name;
+    }
+
+    apply(t1, s1, list[0]);
+    apply(t2, s2, list[1]);
+  }catch(e){
+    // ignore
+  }
+}
+
+// full-screen on images
+mainPreview.addEventListener('click', ()=>enterFullscreen(mainPreview));
+document.getElementById('shot1').addEventListener('click', e=>{
+  if(e.target.dataset.name){
+    enterFullscreen(e.target);
+  }
+});
+document.getElementById('shot2').addEventListener('click', e=>{
+  if(e.target.dataset.name){
+    enterFullscreen(e.target);
+  }
+});
+
+// ---- quick settings ----
+function fillSelect(sel, data){
+  const choices = (data && Array.isArray(data.choices)) ? data.choices : [];
+  const value   = data ? data.value : null;
+  if(!sel) return;
+  sel.innerHTML = '';
+  choices.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    if(v === value) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadQuick(){
+  try{
+    const res = await fetch('/api/config/quick');
+    if(!res.ok) return;
+    const m = await res.json();
+    fillSelect(document.getElementById('iso'), m.iso);
+    fillSelect(document.getElementById('ss'),  m.ss);
+    fillSelect(document.getElementById('ap'),  m.ap);
+    fillSelect(document.getElementById('dm'),  m.dm);
+    fillSelect(document.getElementById('fm'),  m.fm);
+    fillSelect(document.getElementById('afm'), m.afm);
+  }catch(e){
+    // ignore
+  }
+}
+
+async function setConfig(key, val){
+  const st = document.getElementById('cfgStatus');
+  st.textContent = `Setting ${key} → ${val}`;
+  try{
+    const res = await fetch('/api/config/set',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key,value:val})
+    });
+    const data = await res.json();
+    if(res.ok && data.status === 'OK'){
+      st.textContent = `Updated: ${data.value || val}`;
+      toast('Setting updated on camera', 'ok');
+    }else{
+      st.textContent = 'Setting failed';
+      toast('Could not update setting', 'err');
+    }
+  }catch(e){
+    st.textContent = 'Error: ' + e;
+    toast('Setting error: ' + e, 'err');
+  }
+}
+
+['iso','ss','ap','dm','fm','afm'].forEach(id=>{
+  const sel = document.getElementById(id);
+  sel.addEventListener('change', ()=>{
+    const map = {
+      iso:'/main/imgsettings/iso',
+      ss:'/main/capturesettings/shutterspeed',
+      ap:'/main/capturesettings/aperture',
+      dm:'/main/capturesettings/drivemode',
+      fm:'/main/capturesettings/focusmode',
+      afm:'/main/capturesettings/afmethod'
+    };
+    setConfig(map[id], sel.value);
+  });
+});
+
+document.getElementById('btnQuickRefresh').addEventListener('click', async ()=>{
+  const st = document.getElementById('cfgStatus');
+  st.textContent = 'Syncing with camera…';
+  try{
+    try{
+      const r = await fetch('/api/config/quick/force');
+      if(r.ok){ await r.json(); }
+    }catch(_){}
+    await loadQuick();
+    await refreshStatus();
+    st.textContent = 'Quick settings synced.';
+    toast('Quick settings refreshed from camera', 'ok');
+  }catch(e){
+    st.textContent = 'Sync failed';
+    toast('Could not refresh quick settings', 'err');
+  }
+});
+
+// ---- test shot ----
+let lastTestURL = null;
+const testImg = document.getElementById('testPreview');
+document.getElementById('btnTestShot').addEventListener('click', async()=>{
+  try{
+    const res = await fetch('/testshot.jpg?ts=' + Date.now());
+    if(!res.ok){
+      toast('Test shot failed', 'err');
+      return;
+    }
+    const blob = await res.blob();
+    if(lastTestURL) URL.revokeObjectURL(lastTestURL);
+    lastTestURL = URL.createObjectURL(blob);
+    testImg.src = lastTestURL;
+    testImg.style.display='block';
+    toast('Test shot taken (not saved to gallery)', 'ok');
+  }catch(e){
+    toast('Test shot error: ' + e, 'err');
+  }
+});
+testImg.addEventListener('click', ()=>enterFullscreen(testImg));
+
+
+// ---- camera-body preview sync ----
+const previewSyncToggle = document.getElementById('previewSyncToggle');
+
+async function refreshPreviewSync(){
+  if(!previewSyncToggle) return;
+  try{
+    const res = await fetch('/api/preview/config');
+    if(!res.ok) return;
+    const cfg = await res.json();
+    previewSyncToggle.checked = !!cfg.enabled;
+  }catch(e){
+    // silent failure
+  }
+}
+
+if(previewSyncToggle){
+  previewSyncToggle.addEventListener('change', async ()=>{
+    const enabled = !!previewSyncToggle.checked;
+    try{
+      const res = await fetch('/api/preview/config', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ enabled })
+      });
+      let d = {};
+      try{ d = await res.json(); }catch(_){}
+      if(res.ok && d.status === 'OK'){
+        toast(
+          enabled
+            ? 'Camera-body preview sync enabled'
+            : 'Camera-body preview sync disabled',
+          'ok'
+        );
+      }else{
+        toast('Preview sync update failed: ' + (d.error || d.status || 'unknown'), 'err');
+      }
+    }catch(e){
+      toast('Preview sync error: ' + e, 'err');
+    }
+  });
+}
+
+// Whenever the server promotes a new latest file (capture OR camera body),
+// update the big preview + "last file" label + the small tiles.
+async function refreshLatestFromServer(){
+  try{
+    const res = await fetch('/latest_info');
+    if(!res.ok) return;
+
+    const info = await res.json();
+    if(!info || !info.file) return;
+
+    if(info.file === lastLatestFile) return; // nothing new
+    lastLatestFile = info.file;
+
+    // Update main preview + label
+    mainPreview.src = '/latest.jpg?ts=' + Date.now();
+    setText('lastFileLabel', 'Last file: ' + info.file);
+
+    // Refresh the two small tiles as well
+    await loadLastTwo();
+  }catch(e){
+    // ignore transient errors
+  }
+}
+
+
+// ---- init ----
+// ---- init ----
+refreshStatus();
+loadQuick();
+loadLastTwo();
+refreshPreviewSync();
+refreshLatestFromServer();
+
+// Poll status + latest image
+setInterval(refreshStatus, 5000);
+setInterval(loadLastTwo, 10000);        // small gallery
+setInterval(refreshLatestFromServer, 5000); // main preview + camera-body shots
+
+
+</script>

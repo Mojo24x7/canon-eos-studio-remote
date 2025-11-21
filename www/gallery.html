@@ -1,0 +1,230 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gallery</title>
+<style>
+body{
+  margin:0;padding:10px;
+  background:#020617;color:#e5e7eb;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.wrap{max-width:1200px;margin:0 auto}
+h1{margin:4px 0 8px;font-size:16px;font-weight:500;color:#e5e7eb}
+.sub{font-size:12px;color:#9ca3af;margin-bottom:8px}
+.toolbar{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:6px 0;margin-bottom:8px;border-bottom:1px solid #111827;
+}
+.btn{
+  background:#020617;border:1px solid #1f2937;color:#e5e7eb;
+  border-radius:999px;padding:6px 9px;font-size:11px;
+  cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;
+}
+.btn.primary{background:#f97316;border-color:#f97316;color:#111827}
+.btn.danger{border-color:#b91c1c;color:#fecaca}
+.btn:disabled{opacity:.4;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.item{
+  position:relative;border-radius:12px;overflow:hidden;
+  background:#020817;border:1px solid #111827;
+}
+.item img{width:100%;height:140px;object-fit:cover;display:block;cursor:pointer}
+.meta{
+  padding:4px 6px;font-size:11px;color:#9ca3af;
+  display:flex;justify-content:space-between;gap:6px;align-items:center;
+}
+.chk{margin:0}
+.badge{font-size:10px;color:#9ca3af}
+.toast-wrap{
+  position:fixed;right:14px;bottom:14px;
+  display:flex;flex-direction:column;gap:6px;z-index:50;
+}
+.toast{
+  padding:8px 11px;border-radius:10px;font-size:12px;
+  background:#020617;border:1px solid #1f2937;color:#e5e7eb;
+  box-shadow:0 8px 18px rgba(0,0,0,.55);max-width:260px;
+}
+.toast.ok{border-color:#16a34a}
+.toast.err{border-color:#dc2626}
+input[type=text]{
+  background:#020617;border:1px solid #1f2937;border-radius:999px;
+  padding:5px 8px;font-size:11px;color:#e5e7eb;
+}
+</style>
+
+<div class="wrap">
+  <h1>Gallery</h1>
+  <div class="sub">Browse and manage captured photos. Click a thumbnail for full view.</div>
+  <div class="toolbar">
+    <button class="btn" id="btnSelectAll">Select all</button>
+    <button class="btn" id="btnClearSel">Clear</button>
+    <span class="badge" id="selCount">0 selected</span>
+    <span style="flex:1"></span>
+    <button class="btn primary" id="btnZip">Download ZIP</button>
+    <button class="btn danger" id="btnDelete">Delete</button>
+    <input type="text" id="moveTarget" placeholder="session_YYYYMMDD" />
+    <button class="btn" id="btnMove">Move</button>
+    <a class="btn" href="/">Back to Remote</a>
+  </div>
+
+  <div id="grid" class="grid"></div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+let photos = [];
+let selected = new Set();
+
+function toast(msg, kind="ok"){
+  const wrap = document.getElementById('toastWrap');
+  const div = document.createElement('div');
+  div.className = 'toast ' + (kind === 'err' ? 'err' : 'ok');
+  div.textContent = msg;
+  wrap.appendChild(div);
+  setTimeout(()=>div.remove(), 3800);
+}
+function updateSelCount(){
+  document.getElementById('selCount').textContent = selected.size + ' selected';
+}
+
+async function loadGallery(){
+  try{
+    const res = await fetch('/api/gallery');
+    photos = await res.json();
+    const g = document.getElementById('grid');
+    const frag = document.createDocumentFragment();
+    photos.forEach((item, idx)=>{
+      const div = document.createElement('div');
+      div.className = 'item';
+
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.src = item.url + '?v=' + item.ts;
+      img.alt = item.name;
+      img.addEventListener('click', ()=>{
+        window.location.href = '/photo/' + encodeURIComponent(item.name);
+      });
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+
+      const left = document.createElement('div');
+      left.style.display = 'flex';
+      left.style.flexDirection = 'column';
+      left.style.gap = '2px';
+      const spanName = document.createElement('span');
+      spanName.textContent = item.name;
+      spanName.style.whiteSpace = 'nowrap';
+      spanName.style.overflow = 'hidden';
+      spanName.style.textOverflow = 'ellipsis';
+      const spanTime = document.createElement('span');
+      spanTime.className = 'badge';
+      spanTime.textContent = new Date(item.ts * 1000).toLocaleString();
+      left.appendChild(spanName);
+      left.appendChild(spanTime);
+
+      const right = document.createElement('div');
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.className = 'chk';
+      chk.addEventListener('change', ()=>{
+        if(chk.checked) selected.add(item.name);
+        else selected.delete(item.name);
+        updateSelCount();
+      });
+      right.appendChild(chk);
+
+      meta.appendChild(left);
+      meta.appendChild(right);
+
+      div.appendChild(img);
+      div.appendChild(meta);
+      frag.appendChild(div);
+    });
+    g.innerHTML = '';
+    g.appendChild(frag);
+    selected.clear();
+    updateSelCount();
+  }catch(e){
+    toast('Failed to load gallery: ' + e, 'err');
+  }
+}
+
+document.getElementById('btnSelectAll').addEventListener('click', ()=>{
+  selected.clear();
+  photos.forEach(p=>selected.add(p.name));
+  document.querySelectorAll('.chk').forEach(chk=>chk.checked = true);
+  updateSelCount();
+});
+document.getElementById('btnClearSel').addEventListener('click', ()=>{
+  selected.clear();
+  document.querySelectorAll('.chk').forEach(chk=>chk.checked = false);
+  updateSelCount();
+});
+
+document.getElementById('btnZip').addEventListener('click', async ()=>{
+  if(!selected.size){ toast('No photos selected','err'); return; }
+  try{
+    const res = await fetch('/api/gallery/bulk-zip',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({files:[...selected]})
+    });
+    if(!res.ok){ const d = await res.json().catch(()=>({})); toast('ZIP error: ' + (d.error || res.status), 'err'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'photos.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('ZIP downloaded','ok');
+  }catch(e){
+    toast('ZIP error: ' + e, 'err');
+  }
+});
+
+document.getElementById('btnDelete').addEventListener('click', async ()=>{
+  if(!selected.size){ toast('No photos selected','err'); return; }
+  if(!confirm('Delete ' + selected.size + ' photos? This cannot be undone.')) return;
+  try{
+    const res = await fetch('/api/gallery/bulk-delete',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({files:[...selected]})
+    });
+    const d = await res.json();
+    if(res.ok){
+      toast('Deleted ' + (d.deleted ? d.deleted.length : 0) + ' photos','ok');
+      await loadGallery();
+    }else{
+      toast('Delete error: ' + (d.error || 'unknown'), 'err');
+    }
+  }catch(e){
+    toast('Delete error: ' + e, 'err');
+  }
+});
+
+document.getElementById('btnMove').addEventListener('click', async ()=>{
+  const target = document.getElementById('moveTarget').value.trim();
+  if(!selected.size){ toast('No photos selected','err'); return; }
+  if(!target){ toast('Enter a target folder name','err'); return; }
+  try{
+    const res = await fetch('/api/gallery/bulk-move',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({files:[...selected], target})
+    });
+    const d = await res.json();
+    if(res.ok){
+      toast('Moved to ' + d.target,'ok');
+      await loadGallery();
+    }else{
+      toast('Move error: ' + (d.error || 'unknown'),'err');
+    }
+  }catch(e){
+    toast('Move error: ' + e, 'err');
+  }
+});
+
+loadGallery();
+</script>

@@ -1,0 +1,1487 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canon Utility</title>
+<style>
+:root{
+  --bg:#020617;
+  --card:#020817;
+  --card2:#020819;
+  --border:#111827;
+  --accent:#f97316;
+  --accent-soft:rgba(249,115,22,.15);
+  --fg:#e5e7eb;
+  --muted:#9ca3af;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:14px;
+  background:radial-gradient(circle at top,#1e293b 0,#020617 60%);
+  color:var(--fg);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  /* slight fluidity so it feels right on different widths */
+  font-size:clamp(12px,0.9vw + 10px,14px);
+
+  /* allow us to layer the glow under everything */
+  position:relative;
+  z-index:0;
+}
+/* strong bottom glow, independent of zoom */
+body::after{
+  content:"";
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  height:55vh; /* how tall the glow reaches up */
+  background:radial-gradient(
+    circle at center bottom,
+    rgba(15,23,42,0.85) 0%,
+    rgba(15,23,42,0.45) 35%,
+    rgba(2,6,23,0) 80%
+  );
+  pointer-events:none;   /* never block clicks */
+  z-index:-1;            /* sit behind the UI */
+}
+
+header,
+.wrap{
+  position:relative;
+  z-index:1;
+}
+
+.wrap{
+  max-width:1400px;
+  margin:0 auto;
+  /* smooth scale when auto-scaling kicks in */
+  transition:transform 0.18s ease-out;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.brand{
+  font-size:clamp(18px,1.5vw + 14px,22px);
+  font-weight:600;
+  letter-spacing:.02em;
+}
+.badge{font-size:11px;color:var(--muted)}
+.status-pill{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 10px;border-radius:999px;
+  background:rgba(15,23,42,.9);border:1px solid #1f2937;font-size:11px;
+}
+.status-pill span{white-space:nowrap}
+.ss{color:var(--muted)}
+
+/* connection dot */
+.conn-dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:#4b5563;
+}
+.conn-dot.on{
+  background:#22c55e;
+  box-shadow:0 0 0 4px rgba(34,197,94,.25);
+}
+
+.row{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:10px 0 6px;
+}
+.card{
+  flex:1 1 260px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:12px 14px;
+  background:linear-gradient(145deg,rgba(15,23,42,.96),rgba(15,23,42,.86));
+  backdrop-filter:blur(18px);
+  box-shadow:0 18px 45px rgba(0,0,0,.55);
+  transition:
+    transform .16s ease,
+    box-shadow .16s ease,
+    border-color .16s ease,
+    background .18s ease;
+}
+.card:hover{
+  transform:translateY(-4px) scale(1.01);
+  box-shadow:0 24px 60px rgba(0,0,0,.75);
+  border-color:rgba(249,115,22,.45);
+  background:linear-gradient(145deg,rgba(15,23,42,.99),rgba(15,23,42,.9));
+}
+h2{
+  font-size:clamp(12px,0.4vw + 11px,13px);
+  color:var(--muted);
+  margin:0 0 8px;
+  font-weight:500;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+.sub{font-size:11px;color:var(--muted);margin-bottom:8px}
+.capture-btn{
+  width:100%;
+  padding:14px 0;
+  margin:8px 0 4px;
+  font-size:clamp(18px,1.4vw + 14px,20px);
+  font-weight:600;
+  border-radius:999px;
+  border:none;
+  background:var(--accent);
+  color:#111827;
+  box-shadow:0 10px 25px rgba(249,115,22,0.35);
+  cursor:pointer;
+  transition:transform .08s,box-shadow .08s,background .15s,filter .1s;
+}
+.capture-btn:hover{
+  filter:brightness(1.12);
+}
+.capture-btn:active{transform:translateY(1px);box-shadow:0 4px 10px rgba(0,0,0,.5)}
+.capture-btn.ok{background:#22c55e;box-shadow:0 10px 25px rgba(34,197,94,.35);color:#022c22}
+.capture-btn.err{background:#ef4444;box-shadow:0 10px 25px rgba(239,68,68,.35);color:#111827}
+.status-line{font-size:12px;color:var(--muted);min-height:16px}
+.status-line b{color:var(--fg)}
+.preview{
+  width:100%;border-radius:16px;object-fit:contain;
+  background:#020817;max-height:46vh;display:block;
+  cursor:pointer;
+  transition:box-shadow .1s, transform .06s,opacity .12s;
+}
+.preview:hover{
+  box-shadow:0 0 0 2px rgba(249,115,22,.5);
+}
+.meta-line{font-size:12px;color:var(--muted);margin-top:6px;min-height:14px}
+.btn-sm{
+  background:#020617;border:1px solid #1f2937;color:var(--fg);
+  border-radius:999px;padding:6px 9px;font-size:11px;
+  display:inline-flex;align-items:center;gap:4px;
+  cursor:pointer;text-decoration:none;
+}
+.btn-sm:hover{background:#0b1120}
+.btn-sm.primary{background:var(--accent);border-color:var(--accent);color:#111827}
+.btn-sm.danger{border-color:#b91c1c;color:#fecaca}
+.btn-sm:disabled{opacity:.4;cursor:default}
+.kv{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label{font-size:11px;color:var(--muted)}
+select{
+  background:#020617;color:var(--fg);
+  border:1px solid #1f2937;border-radius:8px;
+  padding:5px 7px;font-size:11px;
+}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px}
+.thumb{
+  width:100%;aspect-ratio:1/1;object-fit:cover;
+  border-radius:12px;border:1px solid #020617;
+  background:#020617;cursor:pointer;
+  transition:transform .06s,box-shadow .08s;
+}
+.thumb:hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 18px rgba(0,0,0,.65);
+}
+.field-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+input[type=number]{width:70px;background:#020617;border:1px solid #1f2937;border-radius:8px;padding:5px 6px;font-size:11px;color:var(--fg)}
+.toast-wrap{
+  position:fixed;right:14px;bottom:14px;
+  display:flex;flex-direction:column;gap:6px;z-index:50;
+}
+.toast{
+  padding:8px 11px;border-radius:10px;font-size:12px;
+  background:#020617;border:1px solid #1f2937;color:var(--fg);
+  box-shadow:0 8px 18px rgba(0,0,0,.55);max-width:260px;
+}
+.toast.ok{border-color:#16a34a}
+.toast.err{border-color:#dc2626}
+.badge-soft{padding:2px 6px;border-radius:999px;background:rgba(148,163,184,.16);font-size:10px;color:var(--muted)}
+
+/* subtle focus ring for keyboard navigation */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+a.btn-sm:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+/* --- desktop enhancements (width) --- */
+@media (min-width: 900px){
+  body{
+    padding:20px;
+  }
+  .wrap{
+    max-width:1280px; /* centred “panel” */
+  }
+  .capture-btn{
+    padding:15px 0;
+    max-width:820px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  /* 3x2 grid, equal columns */
+  .row{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    column-gap:14px;
+    row-gap:10px;
+    margin:12px 0 6px;
+    align-items:flex-start;
+  }
+  .card{
+    padding:14px 16px;
+    height:100%;
+  }
+  .preview{
+    max-height:44vh;
+  }
+  .grid{
+    grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
+  }
+}
+
+/* --- desktop, but not very tall: shrink vertically so whole grid fits --- */
+@media (min-width: 900px) and (max-height: 850px){
+  body{
+    padding-top:14px;
+    padding-bottom:12px;
+  }
+  header{
+    margin-bottom:6px;
+  }
+  .capture-btn{
+    margin-top:4px;
+    margin-bottom:2px;
+    padding:12px 0;
+  }
+  .row{
+    row-gap:6px;
+    margin:8px 0 4px;
+  }
+  .card{
+    padding:10px 12px;
+  }
+  .preview{
+    max-height:40vh;
+  }
+}
+
+/* even shorter desktops (e.g. 768–800px tall) → be more aggressive */
+@media (min-width: 900px) and (max-height: 780px){
+  body{
+    padding-top:10px;
+    padding-bottom:8px;
+  }
+  .capture-btn{
+    padding:10px 0;
+    font-size:clamp(16px,1.2vw + 13px,18px);
+  }
+  .card{
+    padding:8px 10px;
+    border-radius:16px;
+  }
+  .preview{
+    max-height:36vh;
+  }
+}
+
+/* --- tablets --- */
+@media (max-width: 768px){
+  body{
+    padding:12px;
+  }
+  .wrap{
+    max-width:100%;
+  }
+  .card{
+    border-radius:16px;
+  }
+  .capture-btn{
+    padding:13px 0;
+    max-width:100%;
+  }
+}
+
+/* --- small phones --- */
+@media (max-width: 480px){
+  body{
+    padding:8px;
+  }
+  header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
+  }
+  .status-pill{
+    width:100%;
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+  .card{
+    border-radius:14px;
+    padding:10px 12px;
+  }
+  .capture-btn{
+    font-size:16px;
+    padding:12px 0;
+  }
+  .grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+#liveImg{ cursor:pointer; }
+
+/* --- Desktop auto-scale when screen isn't tall enough --- */
+
+/* Medium shrink (~90%) for typical 1080p laptops */
+@media (min-width: 1400px) and (max-height: 950px){
+  body{
+    overflow-y:hidden; /* avoid tiny scrollbars when we scale down */
+  }
+  .wrap{
+    transform:scale(0.9);
+    transform-origin:top center;
+  }
+}
+
+/* Stronger shrink (~85%) for shorter screens */
+@media (min-width: 1400px) and (max-height: 870px){
+  body{
+    overflow-y:hidden;
+  }
+  .wrap{
+    transform:scale(0.87);
+    transform-origin:top center;
+  }
+}
+</style>
+
+
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">Canon Utility</div>
+      <div class="badge">Tethered capture • EXIF &amp; GPS • Studio control</div>
+    </div>
+    <div class="status-pill" id="topStatus">
+      <span class="conn-dot" id="connDot"></span>
+      <span id="camInfo">Camera: —</span>
+      <span id="batInfo">Battery: —</span>
+      <span id="modeInfo">Mode: —</span>
+      <span id="lensInfo" class="ss">Lens: —</span>
+      <span id="shotsInfo" class="ss">Shutter: —</span>
+      <span id="ssidInfo" class="ss">SSID: —</span>
+    </div>
+
+  </header>
+
+  <button class="capture-btn" id="btnCapture">● Capture</button>
+  <div class="status-line" id="captureStatus">Ready</div>
+
+  <div class="row">
+    <!-- Last shot -->
+    <div class="card" style="min-width:260px;max-width:680px">
+      <h2>Last Shot</h2>
+      <img id="preview" class="preview" src="/latest.jpg" alt="No image yet">
+      <div class="meta-line" id="metaLine">—</div>
+      <div class="field-row">
+        <button class="btn-sm primary" id="btnOpenLast" disabled>Open ▸</button>
+        <button class="btn-sm" id="btnHistLast" disabled>Histogram</button>
+        <button class="btn-sm" id="btnInfoRefresh">Refresh Info</button>
+      </div>
+    </div>
+
+    <!-- Quick settings + presets -->
+    <div class="card" style="min-width:260px">
+      <h2>Quick Settings</h2>
+      <div class="sub">Tap to change; camera updates live.</div>
+      <div class="kv">
+        <label for="iso">ISO</label>
+        <select id="iso"></select>
+
+        <label for="ss">Shutter</label>
+        <select id="ss"></select>
+
+        <label for="ap">ƒ</label>
+        <select id="ap"></select>
+
+        <label for="dm">Drive</label>
+        <select id="dm"></select>
+
+        <label for="fm">Focus</label>
+        <select id="fm"></select>
+
+        <label for="afm">AF</label>
+        <select id="afm"></select>
+      </div>
+
+      <div class="field-row">
+        <button class="btn-sm" id="btnQuickRefresh">Refresh quick settings</button>
+      </div>
+
+      <div class="status-line" id="cfgStatus">—</div>
+
+      <h2 style="margin-top:10px">Presets</h2>
+      <div class="kv" id="presetRow">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- Test shot + Browser Live View -->
+    <div class="card" style="min-width:260px;max-width:420px">
+      <h2>Test Shot</h2>
+      <div class="sub">Capture with current settings, not saved, with histogram overlay.</div>
+      <div class="field-row">
+        <button class="btn-sm" id="btnLvGrab">Test shot (no save)</button>
+      </div>
+      <img id="liveImg" class="preview" style="margin-top:6px;display:none">
+
+      <h2 style="margin-top:12px">Browser Live View</h2>
+      <div class="sub">
+        Stream MJPEG directly into this page. Uses <code>/live_stream.mjpg</code>.
+      </div>
+      <div class="field-row">
+        <button class="btn-sm" id="btnLiveStreamStart">Start stream</button>
+        <button class="btn-sm danger" id="btnLiveStreamStop" disabled>Stop stream</button>
+      </div>
+      <img id="liveStreamImg" class="preview" style="margin-top:6px; display:none">
+    </div>
+
+    <!-- Session tools + Live View Mirror + preview sync -->
+    <div class="card" style="min-width:260px;max-width:420px">
+      <h2>Session Tools</h2>
+      <div class="sub">Handy controls while shooting.</div>
+      <div class="field-row">
+        <button class="btn-sm" id="btnRefreshAll">Refresh status</button>
+        <button class="btn-sm" id="btnOpenLatestView">Open latest in full view</button>
+      </div>
+
+      <h2 style="margin-top:12px">Live View Mirror</h2>
+      <div class="sub">
+        Keep the mirror up using <code>--wait-event</code> for composing.
+        While this is running, the camera USB is busy, so captures may stop it.
+      </div>
+      <div class="field-row">
+        <label for="liveHoldSecs">Hold for</label>
+        <input type="number" id="liveHoldSecs" min="5" max="3600" value="300">
+        <span class="badge-soft" id="liveHoldStatus">Idle</span>
+      </div>
+      <div class="field-row">
+        <button class="btn-sm" id="btnLiveHoldStart">Start Live View</button>
+        <button class="btn-sm danger" id="btnLiveHoldStop" disabled>Stop</button>
+      </div>
+
+      <div class="sub" style="margin-top:8px">Camera body sync</div>
+      <div class="field-row">
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px">
+          <input type="checkbox" id="previewSyncToggle">
+          Mirror shots fired on camera body into “Last Shot”
+        </label>
+      </div>
+    </div>
+
+    <!-- Storage + Import + GPS -->
+    <div class="card" style="min-width:260px;max-width:420px">
+      <h2>Storage</h2>
+      <div class="sub">Choose where new photos are saved & browsed.</div>
+      <div class="field-row">
+        <label for="folderSelect">Folder</label>
+        <select id="folderSelect"></select>
+        <button class="btn-sm" id="btnFolderRefresh">Refresh</button>
+      </div>
+      <div class="field-row">
+        <span class="badge-soft" id="folderInfo">Active: —</span>
+        <a class="btn-sm" id="btnOpenFaces" href="#" target="_blank">Open FaceLab</a>
+      </div>
+
+      <div class="sub" style="margin-top:8px">Import from camera card</div>
+      <div class="field-row">
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px">
+          <input type="radio" name="impMode" value="new" checked>
+          Only new since last import
+        </label>
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px">
+          <input type="radio" name="impMode" value="all">
+          All files
+        </label>
+      </div>
+      <div class="field-row">
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px">
+          <input type="checkbox" id="impSession" checked>
+          Use session_YYYYMMDD folder
+        </label>
+      </div>
+      <div class="field-row">
+        <button class="btn-sm" id="btnImportStart">Start import</button>
+        <button class="btn-sm danger" id="btnImportStop" disabled>Stop</button>
+        <span class="badge-soft" id="importStatusLabel">Idle</span>
+      </div>
+
+      <h2 style="margin-top:12px">GPS</h2>
+      <div class="sub" id="gpsStatus">GPS: —</div>
+      <div class="field-row">
+        <button class="btn-sm" id="btnGpsWhere">Where am I?</button>
+        <button class="btn-sm" id="btnGpsTagLatest">Tag latest</button>
+        <button class="btn-sm" id="btnGpsToggle">Enable tagging</button>
+      </div>
+    </div>
+
+    <!-- Mini Gallery -->
+    <div class="card" style="min-width:260px;max-width:680px">
+      <h2>Mini Gallery</h2>
+      <div class="sub">12 latest shots from this camera.</div>
+      <div id="miniGrid" class="grid"></div>
+      <div class="field-row" style="margin-top:8px">
+        <a class="btn-sm" href="/gallery">Open full Gallery →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* JS unchanged – full functionality kept exactly as before */
+function toast(msg, kind="ok"){
+  const wrap = document.getElementById('toastWrap');
+  const div = document.createElement('div');
+  div.className = 'toast ' + (kind === 'err' ? 'err' : 'ok');
+  div.textContent = msg;
+  wrap.appendChild(div);
+  setTimeout(()=>{ div.remove(); }, 3800);
+}
+function setText(id, txt){ const el = document.getElementById(id); if(el) el.textContent = txt; }
+
+let lastLatestFile = null;
+let liveStreamActive = false;
+
+/// MPEG STOP 
+function stopLiveStreamClientSide(){
+  const liveStreamImg      = document.getElementById('liveStreamImg');
+  const btnLiveStreamStart = document.getElementById('btnLiveStreamStart');
+  const btnLiveStreamStop  = document.getElementById('btnLiveStreamStop');
+
+  if(liveStreamImg){
+    liveStreamImg.src = '';
+    liveStreamImg.style.display = 'none';
+  }
+  if(btnLiveStreamStart) btnLiveStreamStart.disabled = false;
+  if(btnLiveStreamStop)  btnLiveStreamStop.disabled  = true;
+
+  liveStreamActive = false;
+
+  // NEW: tell server to kill the MJPEG gphoto2 process quickly
+  fetch('/api/live_stream/stop', { method: 'POST' }).catch(()=>{});
+}
+
+
+// ---- status polling ----
+async function refreshStatus(){
+  try{
+    const [stRes, wifiRes] = await Promise.allSettled([
+      fetch('/api/status'),
+      fetch('/api/net/ssid')
+    ]);
+    if(stRes.status === 'fulfilled'){
+      const st = await stRes.value.json();
+      const cams = st.cameras || [];
+      const dot = document.getElementById('connDot');
+
+      let camStr = '—';
+      if(cams.length === 1){
+        camStr = `${cams[0].model} (${cams[0].port})`;
+      }else if(cams.length > 1){
+        camStr = `${cams[0].model} (${cams[0].port}) +${cams.length-1} more`;
+      }else{
+        camStr = 'No camera';
+      }
+      setText('camInfo', 'Camera: ' + camStr);
+
+      if(cams.length === 0){
+        setText('batInfo', 'Battery: —');
+        setText('modeInfo','Mode: —');
+        setText('captureStatus','No camera connected');
+        if(dot) dot.classList.remove('on');
+      }else{
+        setText('batInfo', 'Battery: ' + (st.battery || '—'));
+        setText('modeInfo', 'Mode: ' + (st.shooting_mode || '—'));
+        setText('lensInfo', 'Lens: ' + (st.lens_name || '—'));
+        setText('shotsInfo', 'Shutter: ' + (st.shutter_counter || '—'));
+
+        const left = st.images_left, cap = st.images_capacity;
+        if(left != null && cap != null){
+          setText('captureStatus', `Ready • ${left}/${cap} shots left`);
+        } else if (st.availableshots != null) {
+          setText('captureStatus', `Ready • camera reports ${st.availableshots} shots left`);
+        }
+        if(dot) dot.classList.add('on');
+      }
+
+      if(st.latest_file){
+        const btnOpenLast = document.getElementById('btnOpenLast');
+        const btnHistLast = document.getElementById('btnHistLast');
+        btnOpenLast.disabled = false;
+        btnHistLast.disabled = false;
+        btnOpenLast.dataset.file = st.latest_file;
+      }
+    }
+    if(wifiRes.status === 'fulfilled'){
+      const w = await wifiRes.value.json();
+      setText('ssidInfo','SSID: ' + (w.ssid || '—'));
+    }
+  }catch(e){}
+}
+
+// ---- capture ----
+const btnCapture = document.getElementById('btnCapture');
+const statusLine = document.getElementById('captureStatus');
+
+async function doCapture(){
+  btnCapture.disabled = true;
+  btnCapture.classList.remove('ok','err');
+  statusLine.textContent = 'Capturing...';
+  // If a MJPEG stream is active, stop it first so gphoto2 isn't busy
+  if(liveStreamActive){
+    stopLiveStreamClientSide();
+    // tiny delay so the gphoto2 movie process can exit cleanly
+    await new Promise(r => setTimeout(r, 200));
+  }
+  try{
+    const res = await fetch('/capture');
+    const data = await res.json();
+    if(res.ok && (data.status === 'Captured' || data.status === 'OK')){
+      btnCapture.classList.add('ok');
+      statusLine.textContent = 'Captured: ' + (data.filename || '');
+      document.getElementById('preview').src = '/latest.jpg?ts=' + Date.now();
+      refreshLastInfo();
+      loadMini();
+      toast('Captured ' + (data.filename || ''), 'ok');
+      if(data.gps && data.gps.auto){
+        if(data.gps.ok){
+          toast(`GPS tagged (${data.gps.mode}/${data.gps.source || 'n/a'})`, 'ok');
+        }else{
+          toast('GPS tagging attempted but failed', 'err');
+        }
+      }      // AuraFace notify status (per capture)
+      if (data.auraface && data.auraface.enabled) {
+        if (data.auraface.status === 'ok') {
+          toast('AuraFace: image queued', 'ok');
+        } else {
+          const msg = data.auraface.error || data.auraface.remote_status || 'unknown error';
+          toast('AuraFace error: ' + msg, 'err');
+        }
+      }
+
+    }else{
+      btnCapture.classList.add('err');
+      statusLine.textContent = 'Error: ' + (data.detail || data.error || data.status || 'capture failed');
+      toast('Capture failed', 'err');
+    }
+  }catch(e){
+    btnCapture.classList.add('err');
+    statusLine.textContent = 'Error: ' + e;
+    toast('Capture error: ' + e, 'err');
+  }finally{
+    btnCapture.disabled = false;
+    setTimeout(()=>btnCapture.classList.remove('ok','err'), 1200);
+    refreshStatus();
+  }
+}
+btnCapture.addEventListener('click', doCapture);
+
+// ---- last info ----
+async function refreshLastInfo(){
+  try{
+    const res = await fetch('/latest_info');
+    const info = await res.json();
+
+    const metaEl = document.getElementById('metaLine');
+    const previewEl = document.getElementById('preview');
+    const btnOpenLast = document.getElementById('btnOpenLast');
+    const btnHistLast = document.getElementById('btnHistLast');
+
+    // No image yet
+    if(!info || !info.file){
+      metaEl.textContent = '—';
+      return;
+    }
+
+    // If the latest file changed (new capture/import), update the preview + buttons
+    if(info.file !== lastLatestFile){
+      lastLatestFile = info.file;
+
+      // Force reload latest preview
+      if(previewEl){
+        previewEl.src = '/latest.jpg?ts=' + Date.now();
+      }
+
+      // Enable "Open" + "Histogram" buttons and point to new file
+      if(btnOpenLast && btnHistLast){
+        btnOpenLast.disabled = false;
+        btnHistLast.disabled = false;
+        btnOpenLast.dataset.file = info.file;
+      }
+
+      // Refresh mini gallery as well (so other tabs see new shot)
+      loadMini();
+    }
+
+    // Build EXIF/meta line
+    const parts = [];
+    if(info.datetime)       parts.push(info.datetime);
+    if(info.model)          parts.push(info.model);
+    if(info.lens)           parts.push(info.lens);
+
+    const expBits = [];
+    if(info.fnumber)        expBits.push('ƒ' + info.fnumber);
+    if(info.exposure)       expBits.push(info.exposure);
+    if(info.iso)            expBits.push('ISO ' + info.iso);
+    if(info.focal_length)   expBits.push(info.focal_length + 'mm');
+
+    if(expBits.length)      parts.push(expBits.join(' • '));
+
+    if(info.gps_lat != null && info.gps_lon != null){
+      parts.push(`📍 ${info.gps_lat.toFixed(5)}, ${info.gps_lon.toFixed(5)}`);
+    }
+
+    metaEl.textContent = 'File: ' + info.file + ' • ' + parts.join(' • ');
+  }catch(e){
+    // keep failures silent for the UI; no spam for guests
+  }
+}
+
+
+document.getElementById('btnInfoRefresh').addEventListener('click', ()=>{
+  refreshLastInfo();
+  refreshStatus();
+});
+
+document.getElementById('btnOpenLast').addEventListener('click', ()=>{
+  const f = document.getElementById('btnOpenLast').dataset.file;
+  if(f) window.location.href = '/photo/' + encodeURIComponent(f);
+});
+document.getElementById('btnHistLast').addEventListener('click', ()=>{
+  const f = document.getElementById('btnOpenLast').dataset.file;
+  if(f) window.open('/hist/' + encodeURIComponent(f) + '.png','_blank');
+});
+
+// make preview image itself open the last photo
+document.getElementById('preview').addEventListener('click', ()=>{
+  const f = document.getElementById('btnOpenLast').dataset.file;
+  if(f) window.location.href = '/photo/' + encodeURIComponent(f);
+});
+
+// ---- quick settings & presets ----
+function fillSelect(sel, data){
+  const choices = (data && Array.isArray(data.choices)) ? data.choices : [];
+  const value   = data ? data.value : null;
+  if (!choices.length) return;
+  sel.innerHTML = '';
+  choices.forEach(v=>{
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    if(v === value) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+async function loadQuick(){
+  try{
+    const res = await fetch('/api/config/quick');
+    const m = await res.json();
+    fillSelect(document.getElementById('iso'), m.iso);
+    fillSelect(document.getElementById('ss'),  m.ss);
+    fillSelect(document.getElementById('ap'),  m.ap);
+    fillSelect(document.getElementById('dm'),  m.dm);
+    fillSelect(document.getElementById('fm'),  m.fm);
+    fillSelect(document.getElementById('afm'), m.afm);
+  }catch(e){}
+}
+
+// Quick settings refresh button
+document.getElementById('btnQuickRefresh').addEventListener('click', async ()=>{
+  const st = document.getElementById('cfgStatus');
+  st.textContent = 'Refreshing from camera...';
+  try{
+    // try force endpoint if present
+    try{
+      const r = await fetch('/api/config/quick/force');
+      if(!r.ok && r.status !== 404){
+        // some other error, ignore and fall back
+      }
+    }catch(e){}
+    await loadQuick();
+    await refreshStatus();
+    st.textContent = 'Quick settings refreshed from camera';
+    toast('Quick settings refreshed', 'ok');
+  }catch(e){
+    st.textContent = 'Refresh failed: ' + e;
+    toast('Quick refresh failed: ' + e, 'err');
+  }
+});
+
+async function setConfig(key, val){
+  const st = document.getElementById('cfgStatus');
+  st.textContent = `Setting ${key} = ${val}...`;
+  try{
+    const res = await fetch('/api/config/set',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({key,value:val})
+    });
+    const data = await res.json();
+    if(res.ok && data.status === 'OK'){
+      st.textContent = `OK: ${key} → ${data.value || val}`;
+      loadQuick();
+      toast('Setting updated', 'ok');
+    }else{
+      st.textContent = 'Failed: ' + (data.error || 'unknown error');
+      toast('Setting failed', 'err');
+    }
+  }catch(e){
+    st.textContent = 'Error: ' + e;
+    toast('Setting error: ' + e, 'err');
+  }
+}
+
+['iso','ss','ap','dm','fm','afm'].forEach(id=>{
+  const sel = document.getElementById(id);
+  sel.addEventListener('change', ()=>{
+    const map = {
+      iso:'/main/imgsettings/iso',
+      ss:'/main/capturesettings/shutterspeed',
+      ap:'/main/capturesettings/aperture',
+      dm:'/main/capturesettings/drivemode',
+      fm:'/main/capturesettings/focusmode',
+      afm:'/main/capturesettings/afmethod'
+    };
+    setConfig(map[id], sel.value);
+  });
+});
+
+async function loadPresets(){
+  try{
+    const res = await fetch('/api/presets');
+    const list = await res.json();
+    const row = document.getElementById('presetRow');
+    row.innerHTML = '';
+    list.forEach(name=>{
+      const btn = document.createElement('button');
+      btn.className = 'btn-sm';
+      btn.textContent = name;
+      btn.addEventListener('click', async ()=>{
+        const st = document.getElementById('cfgStatus');
+        st.textContent = 'Applying preset ' + name + '...';
+        try{
+          const r = await fetch('/api/presets/apply',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({name})
+          });
+          const d = await r.json();
+          if(r.ok){
+            st.textContent = 'Preset applied: ' + name;
+            loadQuick();
+            toast('Preset ' + name + ' applied', 'ok');
+          }else{
+            st.textContent = 'Preset failed: ' + (d.error || '');
+            toast('Preset error: ' + (d.error || 'unknown'), 'err');
+          }
+        }catch(e){
+          st.textContent = 'Preset error: ' + e;
+          toast('Preset error: ' + e, 'err');
+        }
+      });
+      row.appendChild(btn);
+    });
+  }catch(e){}
+}
+
+// ---- mini gallery ----
+let miniLastTs = 0;
+async function loadMini(){
+  try{
+    const res = await fetch('/api/gallery?limit=12');
+    const list = await res.json();
+    if(!Array.isArray(list) || !list.length) return;
+    const newest = list[0].ts || 0;
+    if(newest === miniLastTs) return;
+    miniLastTs = newest;
+    const grid = document.getElementById('miniGrid');
+    const frag = document.createDocumentFragment();
+    list.forEach(item=>{
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.loading = 'lazy';
+      img.src = (item.thumb || item.url) + '?v=' + item.ts;
+      img.title = item.name;
+      img.addEventListener('click', ()=>{
+        window.location.href = '/photo/' + encodeURIComponent(item.name);
+      });
+      frag.appendChild(img);
+    });
+    grid.innerHTML = '';
+    grid.appendChild(frag);
+  }catch(e){}
+}
+
+// ---- Session tools ----
+document.getElementById('btnRefreshAll').addEventListener('click', async ()=>{
+  try{
+    await refreshStatus();
+    await refreshLastInfo();
+    await loadQuick();
+    toast('Status & quick settings refreshed', 'ok');
+  }catch(e){
+    toast('Refresh failed: ' + e, 'err');
+  }
+});
+
+document.getElementById('btnOpenLatestView').addEventListener('click', ()=>{
+  window.location.href = '/latest/view';
+});
+
+
+
+// ---- Import from camera card ----
+let importPollTimer = null;
+const btnImportStart = document.getElementById('btnImportStart');
+const btnImportStop  = document.getElementById('btnImportStop');
+
+function getImportMode(){
+  const radios = document.querySelectorAll('input[name="impMode"]');
+  for(const r of radios){
+    if(r.checked) return r.value || 'new';
+  }
+  return 'new';
+}
+
+function setImportButtons(running){
+  if(btnImportStart) btnImportStart.disabled = !!running;
+  if(btnImportStop)  btnImportStop.disabled  = !running;
+}
+
+async function refreshImportStatus(){
+  try{
+    const res = await fetch('/api/import/status');
+    if(!res.ok) return;
+    const st = await res.json();
+    const lbl = document.getElementById('importStatusLabel');
+    if(!lbl) return;
+
+    // default: idle UI
+    if(!st.running && !st.total){
+      lbl.textContent = 'Idle';
+      setImportButtons(false);
+      return;
+    }
+
+    let txt = '';
+    if(st.running){
+      const total = st.total || 0;
+      const done  = st.done  || 0;
+      const cur   = st.current || '';
+      txt = `Importing ${done}/${total}`;
+      if(cur) txt += ` • ${cur}`;
+      setImportButtons(true);
+    }else{
+      const total = st.total || 0;
+      const imp   = st.imported || 0;
+      const skip  = st.skipped || 0;
+      const err   = st.errors  || 0;
+      txt = `Done: imported ${imp}/${total}`;
+      if(skip) txt += ` • skipped ${skip}`;
+      if(err)  txt += ` • errors ${err}`;
+      setImportButtons(false);
+    }
+    lbl.textContent = txt;
+
+    // when job finishes, clean up timer + refresh UI once
+    if(!st.running && importPollTimer){
+      clearInterval(importPollTimer);
+      importPollTimer = null;
+
+      // update latest preview & gallery
+      if(st.latest_file){
+        document.getElementById('preview').src = '/latest.jpg?ts=' + Date.now();
+      }
+      refreshLastInfo();
+      loadMini();
+      refreshStatus();
+
+      const total = st.total || 0;
+      const imp   = st.imported || 0;
+      const skip  = st.skipped || 0;
+      const err   = st.errors  || 0;
+      const auraOk  = st.auraface_sent   || 0;
+      const auraBad = st.auraface_failed || 0;
+
+      let msg = `Import completed: imported ${imp}/${total}`;
+      if(skip) msg += `, skipped ${skip}`;
+      if(err)  msg += `, errors ${err}`;
+      if(auraOk || auraBad){
+        msg += `, AuraFace OK ${auraOk}`;
+        if(auraBad) msg += `, AuraFace failed ${auraBad}`;
+      }
+
+      const kind = (err || auraBad) ? 'err' : 'ok';
+      toast(msg, kind);
+    }
+
+  }catch(e){
+    // ignore transient errors
+  }
+}
+
+btnImportStart.addEventListener('click', async ()=>{
+  if(!confirm('Start importing photos from the camera card?')) return;
+
+  const mode = getImportMode();  // "new" or "all"
+  const session = document.getElementById('impSession').checked;
+
+  try{
+    const res = await fetch('/api/import/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ mode, session })
+    });
+    const d = await res.json();
+    if(!res.ok){
+      toast('Import error: ' + (d.error || d.status || res.status), 'err');
+      return;
+    }
+    toast('Import started (' + mode + (session ? ', session folder' : '') + ')', 'ok');
+    document.getElementById('importStatusLabel').textContent = 'Starting...';
+
+    setImportButtons(true);
+
+    if(importPollTimer) clearInterval(importPollTimer);
+    importPollTimer = setInterval(refreshImportStatus, 2000);
+    refreshImportStatus();
+  }catch(e){
+    toast('Import error: ' + e, 'err');
+    setImportButtons(false);
+  }
+});
+
+btnImportStop.addEventListener('click', async ()=>{
+  if(btnImportStop.disabled) return;
+  try{
+    btnImportStop.disabled = true;
+    const res = await fetch('/api/import/stop', {
+      method: 'POST'
+    });
+    let d = {};
+    try {
+      d = await res.json();
+    } catch (_){}
+
+    if(!res.ok){
+      toast('Stop import error: ' + (d.error || d.status || res.status), 'err');
+      setImportButtons(false);
+      return;
+    }
+
+    toast('Import stop requested', 'ok');
+    document.getElementById('importStatusLabel').textContent = 'Stopping...';
+
+    if(importPollTimer){
+      clearInterval(importPollTimer);
+      importPollTimer = null;
+    }
+    // Check final status after a short delay
+    setTimeout(refreshImportStatus, 1500);
+  }catch(e){
+    toast('Stop import error: ' + e, 'err');
+    setImportButtons(false);
+  }
+});
+
+
+// ---- Test Shot (single capture, not saved) ----
+const liveImg = document.getElementById('liveImg');
+let lastTestShotURL = null;
+
+document.getElementById('btnLvGrab').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/testshot.jpg?ts=' + Date.now());
+    if (!res.ok) {
+      toast('Test shot failed', 'err');
+      return;
+    }
+    const blob = await res.blob();
+
+    // revoke previous blob URL if any
+    if (lastTestShotURL) {
+      URL.revokeObjectURL(lastTestShotURL);
+    }
+    lastTestShotURL = URL.createObjectURL(blob);
+
+    liveImg.style.display = 'block';
+    liveImg.src = lastTestShotURL;
+    toast('Test shot captured (not saved)', 'ok');
+  } catch (e) {
+    toast('Test shot error: ' + e, 'err');
+  }
+});
+
+// clicking the test photo should NOT take another photo;
+// it just opens the already-captured frame in a new tab.
+liveImg.addEventListener('click', () => {
+  if (lastTestShotURL) {
+    window.open(lastTestShotURL, '_blank');
+  }
+});
+
+
+
+// ---- MJPEG Live Stream into main page ----
+const btnLiveStreamStart = document.getElementById('btnLiveStreamStart');
+const btnLiveStreamStop  = document.getElementById('btnLiveStreamStop');
+const liveStreamImg      = document.getElementById('liveStreamImg');
+
+if(btnLiveStreamStart && liveStreamImg){
+  btnLiveStreamStart.addEventListener('click', ()=>{
+    liveStreamImg.style.display = 'block';
+    // cache-buster so each start opens a fresh HTTP stream
+    liveStreamImg.src = '/live_stream.mjpg?ts=' + Date.now();
+    liveStreamActive = true;
+    btnLiveStreamStart.disabled = true;
+    if(btnLiveStreamStop) btnLiveStreamStop.disabled = false;
+  });
+}
+
+if(btnLiveStreamStop){
+  btnLiveStreamStop.addEventListener('click', ()=>{
+    stopLiveStreamClientSide();
+  });
+}
+
+
+// ---- GPS ----
+let gpsCfg = null;
+
+async function fetchGpsConfig(){
+  try{
+    const res = await fetch('/api/gps/get');
+    gpsCfg = await res.json();
+    return gpsCfg;
+  }catch(e){
+    return null;
+  }
+}
+
+async function refreshGpsLabel(){
+  try{
+    const cfg = await fetchGpsConfig();
+    const btnToggle = document.getElementById('btnGpsToggle');
+
+    // tagging disabled
+    if(!cfg || !cfg.enabled){
+      let previewText = '';
+      try{
+        // best-effort preview of where the server thinks it is
+        const r2 = await fetch('/api/gps/where');
+        if(r2.ok){
+          const w = await r2.json();
+          if(w && w.lat != null && w.lon != null){
+            previewText = ` • preview ${w.lat.toFixed(5)}, ${w.lon.toFixed(5)}`;
+          }
+        }
+      }catch(e){}
+      setText('gpsStatus','GPS tagging: off' + previewText);
+      if(btnToggle) btnToggle.textContent = 'Enable tagging';
+      return;
+    }
+
+    // tagging enabled → resolve coordinates
+    let lat = cfg.lat, lon = cfg.lon, src = cfg.mode || 'manual', ssid = 'n/a';
+    try{
+      const r = await fetch('/api/gps/where');
+      if(r.ok){
+        const w = await r.json();
+        if(w && w.lat != null && w.lon != null){
+          lat = w.lat; lon = w.lon;
+          src = w.source || src;
+          ssid = w.ssid || 'n/a';
+        }
+      }
+    }catch(e){}
+
+    if(lat == null || lon == null){
+      setText('gpsStatus','GPS: enabled but no fix yet');
+    }else{
+      setText(
+        'gpsStatus',
+        `GPS tagging: on • ${lat.toFixed(5)}, ${lon.toFixed(5)} • source=${src}, ssid=${ssid}`
+      );
+    }
+    if(btnToggle) btnToggle.textContent = 'Disable tagging';
+  }catch(e){}
+}
+
+document.getElementById('btnGpsWhere').addEventListener('click', async ()=>{
+  await refreshGpsLabel();
+  toast('GPS location refreshed', 'ok');
+});
+
+document.getElementById('btnGpsTagLatest').addEventListener('click', async ()=>{
+  try{
+    const res = await fetch('/api/gps/tag-latest',{method:'POST'});
+    const d = await res.json();
+    if(res.ok && d.status === 'OK'){
+      toast(`Tagged latest with GPS (${d.mode}/${d.source || 'n/a'})`, 'ok');
+      refreshLastInfo();
+    }else{
+      toast('GPS tag failed: ' + (d.error || d.status || 'unknown'),'err');
+    }
+  }catch(e){
+    toast('GPS tag error: ' + e, 'err');
+  }
+});
+
+document.getElementById('btnGpsToggle').addEventListener('click', async ()=>{
+  try{
+    const cfg = gpsCfg || await fetchGpsConfig();
+    const newEnabled = !cfg?.enabled;
+    const payload = {
+      enabled: newEnabled,
+      mode: cfg?.mode || 'manual',
+      lat: cfg?.lat,
+      lon: cfg?.lon
+    };
+    const res = await fetch('/api/gps/set',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const d = await res.json();
+    if(res.ok && d.status === 'OK'){
+      toast(newEnabled ? 'GPS tagging enabled' : 'GPS tagging disabled','ok');
+      await refreshGpsLabel();
+    }else{
+      toast('GPS config error: ' + (d.error || d.status || 'unknown'),'err');
+    }
+  }catch(e){
+    toast('GPS toggle error: ' + e, 'err');
+  }
+});
+
+  // ---- Preview sync (camera card) ----
+  const previewSyncToggle = document.getElementById('previewSyncToggle');
+
+  async function refreshPreviewSync(){
+    if(!previewSyncToggle) return;
+    try{
+      const res = await fetch('/api/preview/config');
+      if(!res.ok) return;
+      const cfg = await res.json();
+      previewSyncToggle.checked = !!cfg.enabled;
+    }catch(e){
+      // silent failure, leave default state
+    }
+  }
+
+  if(previewSyncToggle){
+    previewSyncToggle.addEventListener('change', async ()=>{
+      const enabled = !!previewSyncToggle.checked;
+      try{
+        const res = await fetch('/api/preview/config', {
+          method: 'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ enabled })
+        });
+        const d = await res.json();
+        if(res.ok && d.status === 'OK'){
+          toast(
+            enabled
+              ? 'Camera-body preview sync enabled'
+              : 'Camera-body preview sync disabled',
+            'ok'
+          );
+        }else{
+          toast('Preview sync update failed: ' + (d.error || d.status || 'unknown'), 'err');
+        }
+      }catch(e){
+        toast('Preview sync error: ' + e, 'err');
+      }
+    });
+  }
+
+
+// ---- folder selection / storage ----
+async function loadFolders(){
+  try{
+    const res = await fetch('/api/folders');
+    if(!res.ok) return;
+    const data = await res.json();
+    const sel = document.getElementById('folderSelect');
+    const info = document.getElementById('folderInfo');
+    const btnFaces = document.getElementById('btnOpenFaces');
+
+    if(!sel) return;
+
+    const folders = data.folders || {};
+    const active = data.active || null;
+
+    sel.innerHTML = '';
+    Object.keys(folders).forEach(key=>{
+      const item = folders[key];
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = item.label + (item.exists ? '' : ' (missing)');
+      if(key === active) opt.selected = true;
+      sel.appendChild(opt);
+    });
+
+    if(info){
+      const activeMeta = active && folders[active] ? folders[active] : null;
+      if(activeMeta){
+        info.textContent = 'Active: ' + activeMeta.label + ' → ' + activeMeta.path;
+      }else{
+        info.textContent = 'Active: —';
+      }
+    }
+
+    if(btnFaces){
+      const ui = data.auraface_ui || '';
+      if(ui){
+        btnFaces.href = ui;
+        btnFaces.style.display = 'inline-flex';
+      }else{
+        btnFaces.style.display = 'none';
+      }
+    }
+  }catch(e){
+    // ignore
+  }
+}
+
+document.getElementById('folderSelect').addEventListener('change', async ()=>{
+  const sel = document.getElementById('folderSelect');
+  const key = sel.value;
+  try{
+    const res = await fetch('/api/folders/set', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key})
+    });
+    const d = await res.json();
+    if(res.ok && d.status === 'OK'){
+      toast('Active folder: ' + (d.active || key), 'ok');
+      await loadFolders();
+      // Reload latest preview & gallery to reflect new folder
+      document.getElementById('preview').src = '/latest.jpg?ts=' + Date.now();
+      refreshLastInfo();
+      loadMini();
+      refreshStatus();
+    }else{
+      toast('Failed to switch folder: ' + (d.error || 'unknown'), 'err');
+    }
+  }catch(e){
+    toast('Folder change error: ' + e, 'err');
+  }
+});
+
+document.getElementById('btnFolderRefresh').addEventListener('click', ()=>{
+  loadFolders();
+  toast('Folders refreshed', 'ok');
+});
+
+
+// ---- Live View Mirror (hold via --wait-event) ----
+const liveSecsInput    = document.getElementById('liveHoldSecs');
+const liveStatusSpan   = document.getElementById('liveHoldStatus');
+const btnLiveHoldStart = document.getElementById('btnLiveHoldStart');
+const btnLiveHoldStop  = document.getElementById('btnLiveHoldStop');
+
+async function refreshLiveHold(){
+  if(!liveSecsInput || !liveStatusSpan) return;
+  try{
+    const res = await fetch('/api/live/status');
+    if(!res.ok) return;
+    const st = await res.json();
+    const secs = st.wait_seconds || st.hold_wait || 300;
+    liveSecsInput.value = secs;
+
+    if(st.running){
+      liveStatusSpan.textContent = `Running (~${secs}s)`;
+      if(btnLiveHoldStop) btnLiveHoldStop.disabled = false;
+    }else{
+      liveStatusSpan.textContent = 'Idle';
+      if(btnLiveHoldStop) btnLiveHoldStop.disabled = true;
+    }
+  }catch(e){
+    // leave as-is on error
+  }
+}
+
+if(btnLiveHoldStart){
+  btnLiveHoldStart.addEventListener('click', async ()=>{
+    const raw = parseInt(liveSecsInput.value, 10);
+    const secs = isNaN(raw) ? 300 : raw;
+    try{
+      const res = await fetch('/api/live/start', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({wait_seconds: secs})
+      });
+      const d = await res.json();
+      if(res.ok && d.status === 'OK'){
+        toast(`Live View started for ~${d.wait_seconds || secs}s`, 'ok');
+      }else{
+        toast('Live View error: ' + (d.detail || d.error || d.status || res.status), 'err');
+      }
+    }catch(e){
+      toast('Live View error: ' + e, 'err');
+    }finally{
+      refreshLiveHold();
+    }
+  });
+}
+
+if(btnLiveHoldStop){
+  btnLiveHoldStop.addEventListener('click', async ()=>{
+    try{
+      const res = await fetch('/api/live/stop', { method:'POST' });
+      let d = {};
+      try { d = await res.json(); } catch(_){}
+      if(res.ok){
+        toast('Live View stopped', 'ok');
+      }else{
+        toast('Stop Live View error: ' + (d.detail || d.error || d.status || res.status), 'err');
+      }
+    }catch(e){
+      toast('Stop Live View error: ' + e, 'err');
+    }finally{
+      refreshLiveHold();
+    }
+  });
+}
+
+
+
+// ---- init ----
+refreshStatus();
+refreshLastInfo();
+loadQuick();
+loadPresets();
+loadMini();
+refreshGpsLabel();
+loadFolders();
+refreshPreviewSync();
+refreshLiveHold();   // <- Live View state on load
+
+// Poll camera + latest info
+setInterval(refreshStatus, 30000);
+setInterval(refreshLastInfo, 8000);
+// Optional: keep Live View status fresh in UI
+setInterval(refreshLiveHold, 15000);
+
+</script>
