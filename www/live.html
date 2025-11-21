@@ -1,0 +1,55 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live View</title>
+<style>
+  body{
+    margin:0;
+    background:#020817;
+    color:#e5e7eb;
+    font-family:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+  }
+  .wrap{
+    width:100%;
+    max-width:900px;
+    padding:12px;
+    box-sizing:border-box;
+  }
+  h1{
+    font-size:16px;
+    margin:0 0 8px;
+    color:#9ca3af;
+  }
+  img{
+    width:100%;
+    height:auto;
+    border-radius:12px;
+    background:#000;
+    display:block;
+  }
+  a{
+    color:#93c5fd;
+    text-decoration:none;
+    font-size:13px;
+  }
+  a:hover{
+    text-decoration:underline;
+  }
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+  }
+</style>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Live View (MJPEG)</h1>
+    <a href="/">⟵ Back to Remote</a>
+  </div>
+  <img src="/live_stream.mjpg" alt="Live view stream">
+</div>

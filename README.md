@@ -229,7 +229,11 @@ python3 server.py
 Then open in your browser:
 
 ```text
-http://<board-ip>:5000
+http://<board-ip>:8090 ,
+
+For a fun photobooth
+
+http://<board-ip>:8090/field  
 ```
 
 You should see:
